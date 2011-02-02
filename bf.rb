@@ -1,0 +1,90 @@
+require 'rubygems'
+require 'highline/import'
+
+require 'battlefield'
+
+puts "Welcome to Battlefield on Rails!"
+
+bf_size = ask("Battlefield size: ", Integer) do |size|
+  size.default = 10
+  size.in = 1..100
+end
+
+puts "Fleet selection"
+
+fleet = {}
+while true
+  ships = ask("'5 1' (for 1 carrier size 5) or 'done'): ") do |ships|
+    ships.validate = /(?:(\d+)\s+(\d+))|(done)/
+ end
+ break if ships == 'done'
+ s, count = ships.split(/ /)
+ fleet[s.to_i] = count.to_i
+end
+
+fleet = Fleet.new(fleet)
+
+alice = ask("Player 1 name: ") do |name|
+  name.default = 'Alice'
+end
+
+bob = ask("Player 1 name: ") do |name|
+  name.default = 'Bob'
+end
+
+# placing ships
+def coordinate_validator(battlefield, ship)
+  lambda {|coordinates|
+    return false unless coordinates =~ /(\d+)\s+(\d+)\s+(v|h)/
+
+    x,y,orientation = coordinates.split(/ /)
+
+    orientation = orientation == 'v' ? :vertical : :horizontal
+    begin
+      battlefield.deploy(ship, [x.to_i,y.to_i], orientation)
+      true
+    rescue => e
+      require 'pp'
+      puts e.message
+      puts e.backtrace.inspect
+     raise e
+     false
+    end
+  }
+end
+
+battlefields = {}
+[[alice, bob], [bob, alice]].each do |users|
+  puts "#{users.first} please turn away while #{users.last} places his/her fleet"
+
+  battlefields[users.last] = Battlefield.new bf_size, fleet
+
+  fleet.ships.each do |size,ships|
+    ships.each do |ship|
+      coordinates = ask("Place ship of size #{size} (<x> <y> v|h): ") do |s|
+        s.validate = coordinate_validator(battlefields[users.last], Ship.new(size))
+      end
+      puts battlefields[users.last]
+    end
+  end
+end
+
+users = [alice, bob]
+while true do
+  puts battlefields[users.first]
+  shoot = ask("#{users.first} aim-ready-shoot (x y): ") do |s|
+    s.validate = /(\d+)\s+(\d+)/
+  end
+  x,y = shoot.split(/ /)
+  response = battlefields[users.last].shoot(x.to_i, y.to_i)
+  if response == :hit
+    puts "You've got hit!"
+    if battlefields[users.last].battle_lost?
+      puts "And you won!"
+      break
+    end
+  else
+    puts "You missed"
+  end
+  users.push users.shift
+end
