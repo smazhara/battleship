@@ -1,8 +1,6 @@
-# -*- coding: undecided -*-
-require 'ship'
-require 'fleet'
+$:.push File.join(File.dirname(__FILE__), "/../lib")
 require 'battlefield'
-require 'sector'
+include Battlefield
 
 describe Ship do
   it "should have size" do
@@ -30,15 +28,15 @@ describe Fleet do
   end
 end
 
-describe Battlefield do
+describe Field do
   it "should have size" do
     fleet = Fleet.new({})
-    Battlefield.new(10, fleet).size.should == 10
+    Field.new(10, fleet).size.should == 10
   end
 
   it "should deploy carrier" do
     fleet = Fleet.new 5=>1
-    bf = Battlefield.new(10, fleet)
+    bf = Field.new(10, fleet)
     bf.deploy(Ship.new(5), [1,1], :horizontal)
     bf.occupied_sectors.should_not be_empty
 
@@ -57,7 +55,7 @@ describe Battlefield do
 
   it "should tell whether it's a miss or hit" do
     fleet = Fleet.new 5=>1
-    bf = Battlefield.new(10, fleet)
+    bf = Field.new(10, fleet)
     bf.deploy(Ship.new(5), [1,1], :horizontal)
 
     bf.shoot(5,5).should == :miss
@@ -66,7 +64,7 @@ describe Battlefield do
 
   it "should tell whether battle is lost" do
     fleet = Fleet.new 5=>1
-    bf = Battlefield.new(10, fleet)
+    bf = Field.new(10, fleet)
     bf.deploy(Ship.new(5), [1,1], :horizontal)
 
     bf.battle_lost?.should == false
@@ -84,7 +82,7 @@ describe Battlefield do
 
   it "should not fail if ships do not overlap" do
     fleet = Fleet.new 2=>2
-    bf = Battlefield.new 10, fleet
+    bf = Field.new 10, fleet
     lambda {
       bf.deploy Ship.new(2), [1,1], :horizontal
       bf.deploy Ship.new(2), [3,3], :horizontal
@@ -93,8 +91,19 @@ describe Battlefield do
 
   it "should show itself" do
     fleet = Fleet.new 2=>2
-    bf = Battlefield.new 10, fleet
+    bf = Field.new 10, fleet
     bf.deploy Ship.new(2), [1,1], :horizontal
-    puts bf.to_s
+    bf.to_s.should == '
+ . . . . . . . . . .
+ . # # . . . . . . .
+ . . . . . . . . . .
+ . . . . . . . . . .
+ . . . . . . . . . .
+ . . . . . . . . . .
+ . . . . . . . . . .
+ . . . . . . . . . .
+ . . . . . . . . . .
+ . . . . . . . . . .'
+
   end
 end
